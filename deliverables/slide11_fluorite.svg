@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <text x="160" y="100" font-size="44" fill="#222">萤石型 — Fluorite (CaF2)</text>
+  <text x="160" y="160" font-size="28" fill="#444">特点：Ca 位于 FCC 位置，F 位于四面体间隙（每个 Ca 与 8 个 F 相邻）。</text>
+  <g transform="translate(420,240) scale(2)">
+    <rect x="0" y="0" width="200" height="200" fill="none" stroke="#00aaff" stroke-width="4"/>
+    <circle cx="100" cy="100" r="14" fill="#ffcc00"/>
+    <circle cx="50" cy="50" r="8" fill="#66ccff"/>
+    <circle cx="150" cy="50" r="8" fill="#66ccff"/>
+    <circle cx="50" cy="150" r="8" fill="#66ccff"/>
+    <circle cx="150" cy="150" r="8" fill="#66ccff"/>
+  </g>
+  <text x="160" y="760" font-size="28" fill="#333">典型实例：萤石 CaF2</text>
+  <text x="160" y="820" font-size="24" fill="#666">配位数：Ca:8, F:4 ； 离子晶体</text>
+</svg>
