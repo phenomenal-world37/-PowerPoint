@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>九大晶胞 — 可旋转三维演示</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+    #app { display:flex; height:100vh; }
+    #viewer { flex:1; background:#111; }
+    #panel { width:320px; background:#f7f7f7; padding:12px; box-sizing:border-box; overflow:auto }
+    .item { margin-bottom:8px }
+    select, button { width:100%; padding:8px; margin-top:6px }
+    h1 { font-size:18px; margin:0 0 8px }
+    p { margin:6px 0 }
+    footer { font-size:12px; color:#666; margin-top:12px }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="viewer"></div>
+    <aside id="panel">
+      <h1>九大晶胞（演示）</h1>
+      <p>选择一个晶胞以在右侧窗口查看、旋转与缩放。此演示使用 Three.js 绘制简化原子与晶胞框线，适合高中教学演示。</p>
+      <div class="item">
+        <label>晶胞：</label>
+        <select id="structureSelect">
+          <option value="sc">1. 简单立方 (SC)</option>
+          <option value="bcc">2. 体心立方 (BCC)</option>
+          <option value="fcc">3. 面心立方 (FCC)</option>
+          <option value="hcp">4. 六方最密堆积 (HCP)</option>
+          <option value="diamond">5. 钻石型晶格 (Diamond)</option>
+          <option value="rocksalt">6. NaCl 型（岩盐型）</option>
+          <option value="cscl">7. CsCl 型（铯氯型）</option>
+          <option value="sphalerite">8. 闪锌矿型 (ZnS)</option>
+          <option value="fluorite">9. 萤石型 (CaF2)</option>
+        </select>
+      </div>
+      <div class="item">
+        <button id="resetBtn">重置视角</button>
+      </div>
+      <div class="item">
+        <label>显示:</label>
+        <div>
+          <input type="checkbox" id="showCell" checked> 晶胞框线
+        </div>
+        <div>
+          <input type="checkbox" id="showAtoms" checked> 原子
+        </div>
+        <div>
+          <input type="checkbox" id="showBonds" checked> 连接线（仅示意）
+        </div>
+      </div>
+      <footer>
+        作者: phenomenal-world37 · 2026-08-09
+        <p>仓库: phenomenal-world37/-PowerPoint</p>
+      </footer>
+    </aside>
+  </div>
+
+  <!-- Three.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+  // 简化的晶胞构造器 — 生成原子位置（单位晶胞内）与连线拓扑（示意）
+  const structures = {
+    sc: function(){
+      // simple cubic: atoms at corners
+      const a = 1;
+      const pos = [];
+      for (let x of [0,1]) for (let y of [0,1]) for (let z of [0,1]) pos.push([x*a,y*a,z*a]);
+      return {positions: pos, cell: [[0,0,0],[a,0,0],[0,a,0],[0,0,a]]};
+    },
+    bcc: function(){
+      const a = 1;
+      const pos = [];
+      for (let x of [0,1]) for (let y of [0,1]) for (let z of [0,1]) pos.push([x*a,y*a,z*a]);
+      pos.push([0.5*a,0.5*a,0.5*a]);
+      return {positions: pos, cell: [[0,0,0],[a,0,0],[0,a,0],[0,0,a]]};
+    },
+    fcc: function(){
+      const a = 1;
+      const pos = [];
+      for (let x of [0,1]) for (let y of [0,1]) for (let z of [0,1]) pos.push([x*a,y*a,z*a]);
+      pos.push([0,0.5*a,0.5*a]); pos.push([0.5*a,0,0.5*a]); pos.push([0.5*a,0.5*a,0]);
+      return {positions: pos, cell: [[0,0,0],[a,0,0],[0,a,0],[0,0,a]]};
+    },
+    hcp: function(){
+      // simplified two-layer hexagonal unit cell (a, c)
+      const a = 1, c = 1.63;
+      const pos = [
+        [0,0,0], [2/3*a,1/3*a,0], [1/3*a,2/3*a,0],
+        [0,0,0.5*c], [2/3*a,1/3*a,0.5*c], [1/3*a,2/3*a,0.5*c]
+      ];
+      // cell vectors (approx)
+      const cell = [[0,0,0],[a,0,0],[0.5*a,Math.sqrt(3)/2*a,0],[0,0,c]];
+      return {positions: pos, cell};
+    },
+    diamond: function(){
+      const a=1;
+      const pos = [[0,0,0],[0.5*a,0.5*a,0],[0.5*a,0,0.5*a],[0,0.5*a,0.5*a],[0.25*a,0.25*a,0.25*a],[0.75*a,0.75*a,0.25*a],[0.75*a,0.25*a,0.75*a],[0.25*a,0.75*a,0.75*a]];
+      return {positions: pos, cell: [[0,0,0],[a,0,0],[0,a,0],[0,0,a]]};
+    },
+    rocksalt: function(){
+      const a=1;
+      const posA = [];
+      for (let x of [0,1]) for (let y of [0,1]) for (let z of [0,1]) posA.push([x*a,y*a,z*a]);
+      const posB = [[0.5*a,0.5*a,0.5*a],[0.5*a,0,0],[0,0.5*a,0],[0,0,0.5*a]]; // simplified
+      return {positions: posA.concat(posB), cell:[[0,0,0],[a,0,0],[0,a,0],[0,0,a]]};
+    },
+    cscl: function(){
+      const a=1;
+      const pos = [[0,0,0],[0.5*a,0.5*a,0.5*a]]; // Cs at corners, Cl at body center or vice versa
+      return {positions: pos, cell:[[0,0,0],[a,0,0],[0,a,0],[0,0,a]]};
+    },
+    sphalerite: function(){
+      const a=1;
+      const pos = [[0,0,0],[0.5*a,0.5*a,0.5*a],[0.25*a,0.25*a,0.25*a],[0.75*a,0.75*a,0.75*a]];
+      return {positions: pos, cell:[[0,0,0],[a,0,0],[0,a,0],[0,0,a]]};
+    },
+    fluorite: function(){
+      const a=1;
+      const posCa = [[0,0,0],[0,0.5*a,0.5*a],[0.5*a,0,0.5*a],[0.5*a,0.5*a,0]];
+      const posF = [[0.25*a,0.25*a,0.25*a],[0.75*a,0.75*a,0.25*a],[0.75*a,0.25*a,0.75*a],[0.25*a,0.75*a,0.75*a]];
+      return {positions: posCa.concat(posF), cell:[[0,0,0],[a,0,0],[0,a,0],[0,0,a]]};
+    }
+  };
+
+  // Three.js scene setup
+  let scene, camera, renderer, controls, group;
+  init();
+  function init(){
+    const container = document.getElementById('viewer');
+    renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x111111);
+    camera = new THREE.PerspectiveCamera(45, container.clientWidth/container.clientHeight, 0.1, 100);
+    camera.position.set(2.5,2.5,2.5);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    const light = new THREE.DirectionalLight(0xffffff,1);
+    light.position.set(5,10,7.5);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0x888888));
+
+    group = new THREE.Group();
+    scene.add(group);
+
+    window.addEventListener('resize', onWindowResize);
+
+    // GUI events
+    document.getElementById('structureSelect').addEventListener('change', updateStructure);
+    document.getElementById('resetBtn').addEventListener('click', ()=>{controls.reset(); camera.position.set(2.5,2.5,2.5);});
+    document.getElementById('showCell').addEventListener('change', updateStructure);
+    document.getElementById('showAtoms').addEventListener('change', updateStructure);
+    document.getElementById('showBonds').addEventListener('change', updateStructure);
+
+    updateStructure();
+    animate();
+  }
+
+  function buildCellOutline(cell){
+    // cell: [origin, aVec, bVec, cVec]
+    const o = new THREE.Vector3(...cell[0]);
+    const a = new THREE.Vector3(...cell[1]);
+    const b = new THREE.Vector3(...cell[2]);
+    const c = new THREE.Vector3(...cell[3]);
+    const corners = [];
+    for (let i=0;i<2;i++) for (let j=0;j<2;j++) for (let k=0;k<2;k++){
+      const v = o.clone().add(a.clone().multiplyScalar(i)).add(b.clone().multiplyScalar(j)).add(c.clone().multiplyScalar(k));
+      corners.push(v);
+    }
+    const geom = new THREE.BufferGeometry();
+    const points = [];
+    // draw edges between corners
+    const edges = [
+      [0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]
+    ];
+    edges.forEach(e=>{ points.push(corners[e[0]].x,corners[e[0]].y,corners[e[0]].z); points.push(corners[e[1]].x,corners[e[1]].y,corners[e[1]].z); });
+    geom.setAttribute('position', new THREE.Float32BufferAttribute(points,3));
+    const mat = new THREE.LineBasicMaterial({color:0x00aaff});
+    const lines = new THREE.LineSegments(geom, mat);
+    return lines;
+  }
+
+  function updateStructure(){
+    while(group.children.length) group.remove(group.children[0]);
+    const key = document.getElementById('structureSelect').value;
+    const data = structures[key]();
+
+    const showCell = document.getElementById('showCell').checked;
+    const showAtoms = document.getElementById('showAtoms').checked;
+    const showBonds = document.getElementById('showBonds').checked;
+
+    // draw cell
+    if (showCell && data.cell) {
+      const outline = buildCellOutline(data.cell);
+      group.add(outline);
+    }
+
+    // atoms
+    if (showAtoms && data.positions) {
+      const sphereGeom = new THREE.SphereGeometry(0.07,16,12);
+      const matA = new THREE.MeshStandardMaterial({color:0xffcc00, metalness:0.2, roughness:0.6});
+      const matB = new THREE.MeshStandardMaterial({color:0x66ccff, metalness:0.2, roughness:0.6});
+      data.positions.forEach((p,i)=>{
+        const m = new THREE.Mesh(sphereGeom, i%2?matA:matB);
+        m.position.set(p[0],p[1],p[2]);
+        group.add(m);
+      });
+    }
+
+    // simple bonds (connect nearby atoms)
+    if (showBonds && data.positions) {
+      const pts = data.positions.map(p=>new THREE.Vector3(p[0],p[1],p[2]));
+      const thresh = 0.75;
+      const matLine = new THREE.LineBasicMaterial({color:0xffffff, linewidth:1});
+      const geom = new THREE.BufferGeometry();
+      const points = [];
+      for (let i=0;i<pts.length;i++) for (let j=i+1;j<pts.length;j++){
+        if (pts[i].distanceTo(pts[j])<thresh){ points.push(pts[i].x,pts[i].y,pts[i].z); points.push(pts[j].x,pts[j].y,pts[j].z); }
+      }
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(points,3));
+      const lines = new THREE.LineSegments(geom, matLine);
+      group.add(lines);
+    }
+
+    // center and scale
+    const box = new THREE.Box3().setFromObject(group);
+    const size = new THREE.Vector3(); box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+    const scale = 1.2 / maxDim;
+    group.scale.set(scale,scale,scale);
+    box.setFromObject(group); box.getCenter(new THREE.Vector3());
+    const center = new THREE.Vector3(); box.getCenter(center);
+    group.position.set(-center.x, -center.y, -center.z);
+  }
+
+  function onWindowResize(){
+    const container = document.getElementById('viewer');
+    camera.aspect = container.clientWidth/container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+  }
+
+  function animate(){
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene,camera);
+  }
+  </script>
+</body>
+</html>

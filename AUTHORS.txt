@@ -1,0 +1,4 @@
+作者: phenomenal-world37
+日期: 2026-08-09
+
+本仓库由 GitHub Copilot 协助构建的交互式晶胞演示页面。下一步将上传 PPTX 与 glb 模型文件（需确认）。
