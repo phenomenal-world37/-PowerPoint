@@ -1,11 +1,6 @@
-# 九大晶胞 演示
+# GitHub Pages deployment
 
-此目录包含一个在浏览器中可离线打开的交互式演示：interactive/index.html。演示使用 Three.js 绘制九种常见晶胞的简化模型（适用于高中教学），并允许你在浏览器中自由旋转与缩放。
+This branch serves the interactive demo for the nine crystal cells.
 
-我将按你之前的要求继续制作：
-- 一个完整的 PPTX（中文）文档，包含每种晶胞的文字说明与静态示意图。
-- 每个晶胞的 glTF/.glb 模型文件（用于 3D 演示或导入到 PowerPoint）。
-
-请确认我可否将生成的 .pptx 与 .zip(.glb) 直接提交到本仓库（现在我有写权限）。如果同意，我将在下一次提交中把 PPTX（约 12–14 页）和一个包含所有 .glb 的压缩包上传。
-
-如果你希望先预览当前的交互式网页，请在仓库的 `interactive/index.html` 打开（直接在浏览器中打开此文件即可）。
+Site URL (may take a minute to publish):
+https://phenomenal-world37.github.io/-PowerPoint/
